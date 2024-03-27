@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	visionsvc "github.com/viam-soleng/openalpr/visionsvc"
+	"github.com/felixreichenbach/viam-openalpr/visionsvc"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/module"
 	"go.viam.com/rdk/services/vision"

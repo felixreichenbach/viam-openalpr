@@ -1,11 +1,10 @@
-module github.com/viam-soleng/openalpr
+module github.com/felixreichenbach/viam-openalpr
 
 go 1.22
 
 require (
-	github.com/openalpr/openalpr v2.3.0+incompatible
-	go.viam.com/rdk v0.21.2
-	go.viam.com/utils v0.1.71
+	go.viam.com/rdk v0.22.1
+	go.viam.com/utils v0.1.65
 )
 
 require (

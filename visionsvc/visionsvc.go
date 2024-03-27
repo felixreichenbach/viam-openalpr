@@ -8,7 +8,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/openalpr/openalpr/src/bindings/go/openalpr"
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
@@ -88,7 +87,7 @@ func (svc *myVisionSvc) Reconfigure(ctx context.Context, deps resource.Dependenc
 		return errors.New("openalpr failed to load")
 	}
 	svc.alpr.SetTopN(20)
-	svc.logger.Debugf("openalpr version: %v", openalpr.GetVersion())
+	svc.logger.Debugf("openalpr version: %v", GetVersion())
 	svc.logger.Debug("**** Reconfigured ****")
 	return nil
 }

@@ -1,7 +1,6 @@
 package visionsvc
 
 /*
-#cgo pkg-config: openalpr
 #include <openalprgo.h>
 #include <stdlib.h>
 */
