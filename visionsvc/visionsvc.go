@@ -2,10 +2,13 @@ package visionsvc
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"image"
+	"os"
 	"sync"
 
-	"github.com/pkg/errors"
+	"github.com/openalpr/openalpr/src/bindings/go/openalpr"
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
@@ -39,6 +42,8 @@ type myVisionSvc struct {
 	cancelCtx           context.Context
 	cancelFunc          func()
 	done                chan bool
+
+	alpr Alpr
 }
 
 func init() {
@@ -78,6 +83,12 @@ func (svc *myVisionSvc) Reconfigure(ctx context.Context, deps resource.Dependenc
 	svc.mu.Lock()
 	defer svc.mu.Unlock()
 	svc.logger.Debugf("Reconfiguring %s", PrettyName)
+	svc.alpr = *NewAlpr("us", "", "../../../runtime_data")
+	if !svc.alpr.IsLoaded() {
+		return errors.New("openalpr failed to load")
+	}
+	svc.alpr.SetTopN(20)
+	svc.logger.Debugf("openalpr version: %v", openalpr.GetVersion())
 	svc.logger.Debug("**** Reconfigured ****")
 	return nil
 }
@@ -93,7 +104,21 @@ func (svc *myVisionSvc) ClassificationsFromCamera(ctx context.Context, cameraNam
 }
 
 func (svc *myVisionSvc) Detections(ctx context.Context, image image.Image, extra map[string]interface{}) ([]objectdetection.Detection, error) {
-	return nil, errUnimplemented
+	resultFromFilePath, err := svc.alpr.RecognizeByFilePath("lp.jpg")
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf("%+v\n", resultFromFilePath)
+	fmt.Printf("\n\n\n")
+
+	imageBytes, err := os.ReadFile("lp.jpg")
+	if err != nil {
+		fmt.Println(err)
+	}
+	resultFromBlob, err := svc.alpr.RecognizeByBlob(imageBytes)
+	fmt.Printf("%+v\n", resultFromBlob)
+
+	return nil, nil
 }
 
 func (svc *myVisionSvc) DetectionsFromCamera(ctx context.Context, camera string, extra map[string]interface{}) ([]objectdetection.Detection, error) {
@@ -113,5 +138,6 @@ func (s *myVisionSvc) DoCommand(ctx context.Context, cmd map[string]interface{})
 // The close method is executed when the component is shut down
 func (svc *myVisionSvc) Close(ctx context.Context) error {
 	svc.logger.Debugf("Shutting down %s", PrettyName)
+	svc.alpr.Unload()
 	return errUnimplemented
 }

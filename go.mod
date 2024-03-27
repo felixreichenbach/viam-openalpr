@@ -1,10 +1,10 @@
 module github.com/viam-soleng/openalpr
 
-go 1.18
+go 1.22
 
 require (
-	github.com/pkg/errors v0.9.1
-	go.viam.com/rdk v0.23.2
+	github.com/openalpr/openalpr v2.3.0+incompatible
+	go.viam.com/rdk v0.21.2
 	go.viam.com/utils v0.1.71
 )
 
@@ -99,6 +99,7 @@ require (
 	github.com/pion/transport/v2 v2.2.3 // indirect
 	github.com/pion/turn/v2 v2.1.3 // indirect
 	github.com/pion/webrtc/v3 v3.2.21 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rs/cors v1.9.0 // indirect

@@ -3,12 +3,11 @@ package main
 import (
 	"context"
 
+	visionsvc "github.com/viam-soleng/openalpr/visionsvc"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/module"
 	"go.viam.com/rdk/services/vision"
 	"go.viam.com/utils"
-
-	visionsvc "github.com/viam-soleng/openalpr/visionsvc"
 )
 
 func main() {
