@@ -1,10 +1,12 @@
 package visionsvc
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"image"
+	"image/jpeg"
 	"sync"
 
 	"github.com/openalpr/openalpr/src/bindings/go/openalpr"
@@ -102,9 +104,12 @@ func (svc *myVisionSvc) ClassificationsFromCamera(ctx context.Context, cameraNam
 	return nil, errUnimplemented
 }
 
-func (svc *myVisionSvc) Detections(ctx context.Context, image image.Image, extra map[string]interface{}) ([]objectdetection.Detection, error) {
-	svc.detectAlpr(image)
-	return nil, nil
+func (svc *myVisionSvc) Detections(ctx context.Context, img image.Image, extra map[string]interface{}) ([]objectdetection.Detection, error) {
+	detections, err := svc.detectAlpr(img)
+	if err != nil {
+		return nil, err
+	}
+	return detections, nil
 }
 
 func (svc *myVisionSvc) DetectionsFromCamera(ctx context.Context, camera string, extra map[string]interface{}) ([]objectdetection.Detection, error) {
@@ -129,22 +134,42 @@ func (svc *myVisionSvc) Close(ctx context.Context) error {
 	return errUnimplemented
 }
 
-func (svc *myVisionSvc) detectAlpr(image image.Image) {
-	resultFromFilePath, err := svc.alpr.RecognizeByFilePath("lp.jpg")
+func (svc *myVisionSvc) detectAlpr(img image.Image) ([]objectdetection.Detection, error) {
+	/*
+		resultFromFilePath, err := svc.alpr.RecognizeByFilePath("lp.jpg")
+		if err != nil {
+			fmt.Println(err)
+		}
+		svc.logger.Infof("Detections: %v", resultFromFilePath)
+		//fmt.Printf("%+v\n", resultFromFilePath)
+		//fmt.Printf("\n\n\n")
+	*/
+	buf := new(bytes.Buffer)
+	err := jpeg.Encode(buf, img, nil)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
-	svc.logger.Infof("Detections: %v", resultFromFilePath)
-	//fmt.Printf("%+v\n", resultFromFilePath)
-	//fmt.Printf("\n\n\n")
+	imageBytes := buf.Bytes()
 
 	/*
 		imageBytes, err := os.ReadFile("lp.jpg")
 		if err != nil {
 			fmt.Println(err)
 		}
-		resultFromBlob, err := svc.alpr.RecognizeByBlob(imageBytes)
-		fmt.Printf("%+v\n", resultFromBlob)
 	*/
+	resultFromBlob, err := svc.alpr.RecognizeByBlob(imageBytes)
+	fmt.Printf("%+v\n", resultFromBlob)
+
+	detections := []objectdetection.Detection{}
+
+	for _, result := range resultFromBlob.Plates {
+		minPoint := image.Point{result.PlatePoints[0].X, result.PlatePoints[0].Y}
+		maxPoint := image.Point{result.PlatePoints[3].X, result.PlatePoints[3].Y}
+		bbox := image.Rectangle{minPoint, maxPoint}
+		detection := objectdetection.NewDetection(bbox, float64(result.TopNPlates[result.PlateIndex].OverallConfidence), result.BestPlate)
+		detections = append(detections, detection)
+	}
+
+	return detections, nil
 
 }
