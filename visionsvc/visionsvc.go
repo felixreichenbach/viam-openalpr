@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"os"
 	"sync"
 
+	"github.com/openalpr/openalpr/src/bindings/go/openalpr"
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
@@ -42,7 +42,7 @@ type myVisionSvc struct {
 	cancelFunc          func()
 	done                chan bool
 
-	alpr Alpr
+	alpr openalpr.Alpr
 }
 
 func init() {
@@ -82,12 +82,12 @@ func (svc *myVisionSvc) Reconfigure(ctx context.Context, deps resource.Dependenc
 	svc.mu.Lock()
 	defer svc.mu.Unlock()
 	svc.logger.Debugf("Reconfiguring %s", PrettyName)
-	svc.alpr = *NewAlpr("us", "", "../../../runtime_data")
+	svc.alpr = *openalpr.NewAlpr("us", "", "../../../../runtime_data")
 	if !svc.alpr.IsLoaded() {
 		return errors.New("openalpr failed to load")
 	}
 	svc.alpr.SetTopN(20)
-	svc.logger.Debugf("openalpr version: %v", GetVersion())
+	svc.logger.Debugf("openalpr version: %v", openalpr.GetVersion())
 	svc.logger.Debug("**** Reconfigured ****")
 	return nil
 }
@@ -103,25 +103,13 @@ func (svc *myVisionSvc) ClassificationsFromCamera(ctx context.Context, cameraNam
 }
 
 func (svc *myVisionSvc) Detections(ctx context.Context, image image.Image, extra map[string]interface{}) ([]objectdetection.Detection, error) {
-	resultFromFilePath, err := svc.alpr.RecognizeByFilePath("lp.jpg")
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Printf("%+v\n", resultFromFilePath)
-	fmt.Printf("\n\n\n")
-
-	imageBytes, err := os.ReadFile("lp.jpg")
-	if err != nil {
-		fmt.Println(err)
-	}
-	resultFromBlob, err := svc.alpr.RecognizeByBlob(imageBytes)
-	fmt.Printf("%+v\n", resultFromBlob)
-
+	svc.detectAlpr(image)
 	return nil, nil
 }
 
 func (svc *myVisionSvc) DetectionsFromCamera(ctx context.Context, camera string, extra map[string]interface{}) ([]objectdetection.Detection, error) {
-	return nil, errUnimplemented
+	svc.detectAlpr(nil)
+	return nil, nil
 }
 
 // ObjectPointClouds can be implemented to extend functionality but returns unimplemented currently.
@@ -139,4 +127,24 @@ func (svc *myVisionSvc) Close(ctx context.Context) error {
 	svc.logger.Debugf("Shutting down %s", PrettyName)
 	svc.alpr.Unload()
 	return errUnimplemented
+}
+
+func (svc *myVisionSvc) detectAlpr(image image.Image) {
+	resultFromFilePath, err := svc.alpr.RecognizeByFilePath("lp.jpg")
+	if err != nil {
+		fmt.Println(err)
+	}
+	svc.logger.Infof("Detections: %v", resultFromFilePath)
+	//fmt.Printf("%+v\n", resultFromFilePath)
+	//fmt.Printf("\n\n\n")
+
+	/*
+		imageBytes, err := os.ReadFile("lp.jpg")
+		if err != nil {
+			fmt.Println(err)
+		}
+		resultFromBlob, err := svc.alpr.RecognizeByBlob(imageBytes)
+		fmt.Printf("%+v\n", resultFromBlob)
+	*/
+
 }
