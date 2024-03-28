@@ -84,7 +84,8 @@ func (svc *myVisionSvc) Reconfigure(ctx context.Context, deps resource.Dependenc
 	svc.mu.Lock()
 	defer svc.mu.Unlock()
 	svc.logger.Debugf("Reconfiguring %s", PrettyName)
-	svc.alpr = *openalpr.NewAlpr("us", "", "../../../../runtime_data")
+	// TODO: Make NewAlpr configurable
+	svc.alpr = *openalpr.NewAlpr("us", "", "./runtime_data")
 	if !svc.alpr.IsLoaded() {
 		return errors.New("openalpr failed to load")
 	}
