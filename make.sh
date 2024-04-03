@@ -11,4 +11,4 @@ g++ -Wall -L${OPENALPR_LIB_DIR} -I${OPENALPR_INCLUDE_DIR} -shared -fPIC -o libop
 #go run main.go
 
 cd viam-openalpr
-go build -o viamalpr
+go build -o viam-openalpr
