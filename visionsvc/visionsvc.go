@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"image"
 	"image/jpeg"
 	"sync"
 
 	"github.com/openalpr/openalpr/src/bindings/go/openalpr"
-	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/services/vision"
@@ -25,24 +23,21 @@ var PrettyName = "Viam openalpr vision service"
 var Description = "A module of the Viam vision service that crops an image to an initial detection bounding box and then processes the cropped image with the provided vision service"
 
 type Config struct {
+	Country    string `json:"country"`
+	ConfigFile string `json:"config_file"`
+	RuntimeDir string `json:"runtime_dir"`
 }
 
 type myVisionSvc struct {
 	resource.Named
-	logger              logging.Logger
-	camera              camera.Camera
-	detector            vision.Service
-	detectorConfidence  float64
-	maxDetections       int
-	detectorValidLabels []string
-	detBorder           int
-	visionService       vision.Service
-	logImage            bool
-	imagePath           string
-	mu                  sync.RWMutex
-	cancelCtx           context.Context
-	cancelFunc          func()
-	done                chan bool
+	logger     logging.Logger
+	country    string
+	configFile string
+	runtimeDir string
+	mu         sync.RWMutex
+	cancelCtx  context.Context
+	cancelFunc func()
+	done       chan bool
 
 	alpr openalpr.Alpr
 }
@@ -85,7 +80,26 @@ func (svc *myVisionSvc) Reconfigure(ctx context.Context, deps resource.Dependenc
 	defer svc.mu.Unlock()
 	svc.logger.Debugf("Reconfiguring %s", PrettyName)
 	// TODO: Make NewAlpr configurable
-	svc.alpr = *openalpr.NewAlpr("us", "", "./runtime_data")
+	newConf, err := resource.NativeConfig[*Config](conf)
+	if err != nil {
+		return err
+	}
+	if newConf.Country != "" {
+		svc.country = newConf.Country
+	} else {
+		svc.country = "us"
+	}
+	if newConf.ConfigFile != "" {
+		svc.configFile = newConf.ConfigFile
+	} else {
+		svc.configFile = ""
+	}
+	if newConf.RuntimeDir != "" {
+		svc.runtimeDir = newConf.RuntimeDir
+	} else {
+		svc.runtimeDir = "$APPDIR/usr/share/runtime_data"
+	}
+	svc.alpr = *openalpr.NewAlpr(svc.country, svc.configFile, svc.runtimeDir) // Defaults ("us", "", "./runtime_data")
 	if !svc.alpr.IsLoaded() {
 		return errors.New("openalpr failed to load")
 	}
@@ -159,10 +173,11 @@ func (svc *myVisionSvc) detectAlpr(img image.Image) ([]objectdetection.Detection
 		}
 	*/
 	resultFromBlob, err := svc.alpr.RecognizeByBlob(imageBytes)
-	fmt.Printf("%+v\n", resultFromBlob)
-
+	if err != nil {
+		return nil, err
+	}
+	svc.logger.Debugf("%v", resultFromBlob)
 	detections := []objectdetection.Detection{}
-
 	for _, result := range resultFromBlob.Plates {
 		minPoint := image.Point{result.PlatePoints[0].X, result.PlatePoints[0].Y}
 		maxPoint := image.Point{result.PlatePoints[3].X, result.PlatePoints[3].Y}
@@ -170,7 +185,5 @@ func (svc *myVisionSvc) detectAlpr(img image.Image) ([]objectdetection.Detection
 		detection := objectdetection.NewDetection(bbox, float64(result.TopNPlates[result.PlateIndex].OverallConfidence), result.BestPlate)
 		detections = append(detections, detection)
 	}
-
 	return detections, nil
-
 }
