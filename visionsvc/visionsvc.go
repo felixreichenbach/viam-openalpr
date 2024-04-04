@@ -6,6 +6,7 @@ import (
 	"errors"
 	"image"
 	"image/jpeg"
+	"os"
 	"sync"
 
 	"github.com/openalpr/openalpr/src/bindings/go/openalpr"
@@ -97,7 +98,7 @@ func (svc *myVisionSvc) Reconfigure(ctx context.Context, deps resource.Dependenc
 	if newConf.RuntimeDir != "" {
 		svc.runtimeDir = newConf.RuntimeDir
 	} else {
-		svc.runtimeDir = "$APPDIR/usr/share/runtime_data"
+		svc.runtimeDir = os.Getenv("APPDIR") + "/usr/share/openalpr/runtime_data"
 	}
 	svc.alpr = *openalpr.NewAlpr(svc.country, svc.configFile, svc.runtimeDir) // Defaults ("us", "", "./runtime_data")
 	if !svc.alpr.IsLoaded() {
